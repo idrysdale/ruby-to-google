@@ -1,5 +1,6 @@
-require 'sinatra'
-require 'google_drive'
+require 'bundler'
+
+Bundler.require :default
 
 set :port, 8080
 set :static, true
