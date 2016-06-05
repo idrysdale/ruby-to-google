@@ -26,3 +26,17 @@ post '/register' do
   ws[next_empty_row, 2] = name
   ws.save
 end
+
+get '/check' do
+  email = params[:email]
+
+  hash = JSON.parse(File.read('./secrets.json'))
+  session = GoogleDrive.saved_session('config.json')
+  ws = session.spreadsheet_by_key(hash['spreadsheet_id']).worksheets[0]
+
+  ws.num_rows.times do |i|
+    cell = ws[i + 1, 2]
+    return 'Email exists' if cell == email
+  end
+  return 'OK'
+end
