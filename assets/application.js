@@ -52,6 +52,16 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	}
 
+	function checkButton() {
+		console.log("checking button")
+		if (inputEmail.errorState || inputName.errorState) {
+			btn.disabled = true;
+		}
+		else {
+			btn.disabled = false;
+		}
+	}
+
 	function checkUniqueEmail(email){
 		var xhr = new XMLHttpRequest();
 		xhr.open('GET', encodeURI('check?email=' + email));
@@ -89,8 +99,11 @@ document.addEventListener('DOMContentLoaded', function () {
 	inputEmail.errorState = false;
 	inputName.errorState = false;
 
+	checkButton();
+
 	inputEmail.addEventListener('blur', function() {
 		checkBlank(inputEmail, 'Email');
+		checkButton();
 	});
 
 	inputName.addEventListener('blur', function() {
