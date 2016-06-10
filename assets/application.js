@@ -1,122 +1,155 @@
-document.addEventListener('DOMContentLoaded', function () {
+(function () {
 
-	function isBlank(str) {
-	    return (!str || /^\s*$/.test(str));
-	}
+    'use strict';
 
-	function addClass(el, className) {
-		if (el.classList) {
-			el.classList.add(className);
-		}
-		else {
-			el.className += ' ' + className;
-		}
-	}
+    var ErrorChecker = function () {
+        this.errors = [];
+    };
 
-	function removeClass(el, className) {
-		if (el.classList)
-			el.classList.remove(className);
-		else
-			el.className = el.className.replace(new RegExp('(^|\\b)' + className.split(' ').join('|') + '(\\b|$)', 'gi'), ' ');
-	}
+    var InputField = function (element, friendlyName, errorChecker) {
 
-	function addError(el, errorString) {
-		if (el.errorState == false) {
-			addClass(el, 'error');
-	    	var span = document.createElement("span");
-			span.id = "error-message";
-			span.innerHTML = errorString;
-			el.parentElement.appendChild(span);
-			el.errorState = true;
-			el.focus();
-		}
-	}
+        this.element = document.querySelector(element);
+        this.friendlyName = friendlyName;
 
-	function removeErrors(el) {
-		console.log("Removing errors for " + el.id)
-		if (el.errorState == true) {
-			removeClass(el, 'error');
-			el.parentElement.querySelector('#error-message').remove();
-			el.errorState = false;
-		}
-	}
+        this.isBlank = function (str) {
+            return (!str || (/^\s*$/).test(str));
+        };
 
-	function checkBlank(el, strFriendlyName) {
-		if (isBlank(el.value)) {
-			addError(el, strFriendlyName + " can't be blank");
-			return true;
-		}
-		else {
-			removeErrors(el);
-			return false;
-		}
-	}
+        this.addHTMLClass = function (className) {
+            if (this.element.classList) {
+                this.element.classList.add(className);
+            } else {
+                this.element.className += ' ' + className;
+            }
+        };
 
-	function checkButton() {
-		console.log("checking button")
-		if (inputEmail.errorState || inputName.errorState) {
-			btn.disabled = true;
-		}
-		else {
-			btn.disabled = false;
-		}
-	}
+        this.removeHTMLClass = function (className) {
+            if (this.element.classList) {
+                this.element.classList.remove(className);
+            } else {
+                this.element.className = this.element.className.replace(new RegExp('(^|\\b)' + className.split(' ').join('|') + '(\\b|$)', 'gi'), ' ');
+            }
+        };
 
-	function checkUniqueEmail(email){
-		var xhr = new XMLHttpRequest();
-		xhr.open('GET', encodeURI('check?email=' + email));
-		xhr.onload = function() {
-		    if (xhr.status === 200) {
-		    	document.querySelector("#loading").remove();
-		        if (xhr.responseText == 'OK') {
-		        	document.querySelector("form").submit();
-		        }
-		        else {
-					addClass(inputEmail, 'error')
-			    	var span = document.createElement("span");
-					span.id = "email-error";
-					span.innerHTML = "Email is already registered";
-					inputEmail.parentElement.appendChild(span);
-					inputEmail.errorState = true;
-					inputEmail.focus();
-		        }
-		    }
-		    else {
-		        alert('Request failed.  Returned status of ' + xhr.status);
-		    }
-		};
-		xhr.send();
-		var div = document.createElement("div");
-		div.id = "loading";
-		div.innerHTML = "Loading...";
-		document.getElementsByTagName('body')[0].appendChild(div);
-	}
+        this.hasClass = function (className) {
+            if (this.element.classList) {
+                return this.element.classList.contains(className);
+            } else {
+                var regex = new RegExp('(^| )' + className + '( |$)', 'gi');
+                return regex.test(this.element.className);
+            }
+        };
 
-	var inputEmail = document.querySelector('#email');
-	var inputName = document.querySelector('#name');
-	var btn = document.querySelector("#checkEmail");
+        this.checkErrors = function () {
+            if (errorChecker.errors.length === 0) {
+                document.querySelector("#submit").disabled = false;
+            } else {
+                document.querySelector("#submit").disabled = true;
+            }
+        };
 
-	inputEmail.errorState = false;
-	inputName.errorState = false;
+        this.addError = function (errorMessage) {
+            if (!this.hasClass('error')) {
+                this.addHTMLClass('error');
+                var span = document.createElement("span");
+                span.id = "error-message";
+                span.innerHTML = errorMessage;
+                this.element.parentElement.appendChild(span);
+                this.element.focus();
 
-	checkButton();
+                errorChecker.errors.push(this.friendlyName);
+            }
+            this.checkErrors();
+        };
 
-	inputEmail.addEventListener('blur', function() {
-		checkBlank(inputEmail, 'Email');
-		checkButton();
-	});
+        this.removeErrors = function () {
+            if (this.hasClass('error')) {
+                this.removeHTMLClass('error');
+                this.element.parentElement.querySelector('#error-message').remove();
+            }
+            var index = errorChecker.errors.indexOf(this.friendlyName);
+            if (index > -1) {
+                errorChecker.errors.splice(index, 1);
+            }
+            this.checkErrors();
+        };
 
-	inputName.addEventListener('blur', function() {
-		checkBlank(inputName, 'Name');
-	});
+        this.checkEmpty = function () {
+            if (this.isBlank(this.element.value)) {
+                this.addError(this.friendlyName + " can't be blank");
+                return true;
+            } else {
+                this.removeErrors();
+                return false;
+            }
+        };
 
-	btn.addEventListener("click", function () {
-		if (checkBlank(inputEmail, 'Email') && checkBlank(inputName, 'Name')) {
-			console.log("Email or name is blank");
-			return false
-		} else {
-			checkUniqueEmail(email.value);
-		}
-	});
+        this.checkUniqueEmail = function (callback) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', encodeURI('check?email=' + this.element.value));
+            xhr.onload = function () {
+                callback.removeErrors();
+                if (xhr.status === 200) {
+                    document.querySelector("#loading").remove();
+                    if (xhr.responseText !== 'OK') {
+                        callback.addError("Email is already registered");
+                    }
+                } else {
+                    console.log('Request failed.  Returned status of ' + xhr.status);
+                }
+            };
+            xhr.send();
+            this.addError("Checking...");
+        };
 
-});
+    };
+
+    var Form = function (form, errorChecker) {
+
+        this.form = document.querySelector(form);
+
+        var fields = {
+            name: {
+                id: '#name',
+                friendlyName: 'Name',
+                selector: document.querySelector('#name'),
+                required: true
+            },
+            email: {
+                id: '#email',
+                friendlyName: 'Email',
+                selector: document.querySelector('#email'),
+                required: true,
+                uniqueEmail: true
+            }
+        };
+
+        this.init = function () {
+            Object.keys(fields).forEach(function (item) {
+                fields[item].selector.addEventListener('blur', function () {
+                    var inputField = new InputField(fields[item].id, fields[item].friendlyName, errorChecker);
+                    if (fields[item].required) {
+                        inputField.checkEmpty();
+                    }
+                    if (fields[item].uniqueEmail) {
+                        inputField.checkUniqueEmail(inputField);
+                    }
+                });
+            });
+            document.querySelector("#submit").disabled = true;
+        };
+
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        var errorChecker = new ErrorChecker();
+        errorChecker.errors.push("Name");
+        errorChecker.errors.push("Email");
+
+        var form = new Form('#new', errorChecker);
+        form.init();
+
+    });
+
+}());

@@ -1,10 +1,9 @@
 %h1 Fill Out This Form
-%form{action: "/register", method: "POST"}
+%form{action: "/register", method: "POST", id: "new"}
   %div
     %label{for: "name"} Your name:
     %input{name: "name", type: "text", id: "name"}/
   %div
     %label{for: "email"} Your email:
     %input{name: "email", type: "text", id: "email"}/
-  <!-- %input{type: "submit"}/ -->
-  %button{id: "checkEmail"} Check
+  %input{type: "submit", id: "submit"}/
